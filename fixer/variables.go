@@ -12,10 +12,6 @@ import (
 	"github.com/zclconf/go-cty/cty"
 )
 
-type VariableFixer struct {
-	src string
-}
-
 // Variable is terraform module variable
 type Variable struct {
 	Name        string          `hcl:"name,label"`
@@ -24,7 +20,7 @@ type Variable struct {
 	Default     hclwrite.Tokens `hcl:"default,attr"`
 }
 
-func (v *VariableFixer) judgeType(value string) string {
+func judgeType(value string) string {
 	// value が "" で囲われていたら：string
 	// value を数値にキャストできたら：number
 	// value が [] で囲われていたら：list
@@ -48,7 +44,7 @@ func (v *VariableFixer) judgeType(value string) string {
 	}
 }
 
-func (v *VariableFixer) parseVariable(block *hclwrite.Block) *Variable {
+func parseVariable(block *hclwrite.Block) *Variable {
 	variable := Variable{
 		Name:    block.Labels()[0],
 		Default: hclwrite.TokensForValue(cty.StringVal("")),
@@ -67,7 +63,7 @@ func (v *VariableFixer) parseVariable(block *hclwrite.Block) *Variable {
 	if _, is_exist := body.Attributes()["type"]; !is_exist {
 		// fmt.Println("type is not exist")
 		default_value := string(body.GetAttribute("default").Expr().BuildTokens(nil).Bytes())
-		type_value := v.judgeType(strings.TrimSpace(default_value))
+		type_value := judgeType(strings.TrimSpace(default_value))
 		body.SetAttributeValue("type", cty.StringVal(type_value))
 	}
 
@@ -78,8 +74,8 @@ func (v *VariableFixer) parseVariable(block *hclwrite.Block) *Variable {
 	return &variable
 }
 
-func (v *VariableFixer) Run() {
-	path := v.src
+func Run(path string) {
+	// path := "variables.tf"
 	src, err := ioutil.ReadFile(path)
 	if err != nil {
 		log.Fatal(err)
@@ -93,7 +89,7 @@ func (v *VariableFixer) Run() {
 	body := file.Body()
 	for _, block := range body.Blocks() {
 		fmt.Println("---")
-		v.parseVariable(block)
+		parseVariable(block)
 
 	}
 }

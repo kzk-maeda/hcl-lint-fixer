@@ -1,4 +1,4 @@
-module github.com/kzk-maeda/hcl-lint-fixer/lintfixer
+module github.com/kzk-maeda/hcl-lint-fixer/fixer
 
 go 1.18
 
