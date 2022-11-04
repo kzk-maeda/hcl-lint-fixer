@@ -34,3 +34,6 @@ variable "heroku_vpc_cidr_blocks_tokyo" {
     "10.1.0.0/20"
   ]
 }
+
+variable "hoge" {
+}
