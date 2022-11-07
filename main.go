@@ -2,6 +2,7 @@ package main
 
 func main() {
 	src := "files/variables.tf"
-	Run(src)
-	// fmt.Println(createDocs(src))
+	tmpSrc := deleteBlankRow(src)
+	Run(tmpSrc)
+	deleteTmpFile(tmpSrc)
 }

@@ -36,11 +36,15 @@ variable "heroku_vpc_cidr_blocks_tokyo" {
 }
 
 variable "hoge" {
+  default = {"foo": "bar"}
+}
+
+variable "fuga" {
+  
 }
 
 variable "main_db_instances_virginia" {
   description = "Configuration values for individual main DB instances in Virginia region"
-  # type        = list(map(string))
   default = [{
     instance_class               = "db.t3.large"
     promotion_tier               = 0

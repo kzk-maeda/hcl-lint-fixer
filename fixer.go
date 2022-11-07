@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -25,15 +26,35 @@ type Variable struct {
 }
 
 func judgeType(value string) string {
-	// value が "" で囲われていたら：string
-	// value を数値にキャストできたら：number
-	// value が [] で囲われていたら：list
-	// value が true/false であれば：bool
+	/*
+		value が "" で囲われていたら：string
+		value を数値にキャストできたら：number
+		value が [] で囲われていたら：list
+		value が true/false であれば：bool
+	*/
 
 	if strings.HasPrefix(value, "[") {
-		return "list"
+		value = strings.TrimRight(strings.TrimLeft(value, "["), "]")    // []を削除
+		value = strings.Replace(value, " ", "", -1)                     // 空白を削除
+		value = strings.TrimSpace(strings.Replace(value, "\n", "", -1)) // 改行を削除
+		splited := strings.Split(value, ",")                            // , でsplit
+		samplingValue := splited[0]
+		subType := judgeType(samplingValue)
+		switch subType {
+		case "string":
+			return "list_string"
+		case "number":
+			return "list_number"
+		case "bool":
+			return "list_bool"
+		case "map_string":
+			return "list_map_string"
+		default:
+			return "list"
+		}
+
 	} else if strings.HasPrefix(value, "{") {
-		return "map"
+		return "map_string"
 	} else if _, err := strconv.Atoi(value); err == nil {
 		return "number"
 	} else if value == "true" || value == "false" {
@@ -41,6 +62,17 @@ func judgeType(value string) string {
 	} else {
 		return "string"
 	}
+}
+
+func appendTypeToBody(typeValue string, body *hclwrite.Body) error {
+	typeTokenMap := getTypesToken()
+	// fmt.Println(typeValue, typeTokenMap[typeValue])
+	_, ok := typeTokenMap[typeValue]
+	if !ok {
+		return errors.New("Unexpected Value in Type Label")
+	}
+	body.AppendUnstructuredTokens(typeTokenMap[typeValue])
+	return nil
 }
 
 func parseDescription(value string) string {
@@ -81,12 +113,17 @@ func parseVariable(block *hclwrite.Block) *hclwrite.Block {
 	if _, ok := body.Attributes()["type"]; !ok {
 		// defaultがない場合、skip
 		if _, ok := body.Attributes()["default"]; !ok {
+			msg := fmt.Sprintf("This valiable could not be filled type value : %s", blockName)
+			fmt.Println(msg)
 			return returnBlock
 		}
 
 		defaultValue := string(body.GetAttribute("default").Expr().BuildTokens(nil).Bytes())
 		typeValue := judgeType(strings.TrimSpace(defaultValue))
-		returnBlock.Body().SetAttributeValue("type", cty.StringVal(typeValue))
+		err := appendTypeToBody(typeValue, returnBlock.Body())
+		if err != nil {
+			log.Fatal(err)
+		}
 	} else {
 		typeValue := body.GetAttribute("type")
 		typeValueToken := typeValue.BuildTokens(nil)
@@ -118,17 +155,26 @@ func Run(path string) {
 	}
 
 	body := file.Body()
-	// var new_body hclwrite.Body
 	for _, block := range body.Blocks() {
 		new_block := parseVariable(block)
 
 		body.RemoveBlock(block)
 		body.AppendBlock(new_block)
-		file.Body().AppendNewline()
+		file.Body().AppendNewline() // blockごとに改行
 	}
 
 	updated := file.BuildTokens(nil).Bytes()
 	output := hclwrite.Format(updated)
-	fmt.Fprint(os.Stdout, string(output))
+	outputFile := "./files/output.tf"
+	// fmt.Fprint(os.Stdout, string(output))
+	fo, err := os.Create(outputFile)
+	defer fo.Close()
+	if err != nil {
+		log.Fatal(err)
+	}
+	_, err = fo.Write(output)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 }
