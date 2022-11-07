@@ -82,7 +82,7 @@ func parseDescription(value string) string {
 	// Title Caseに変換
 	for l := range arr {
 		// 特定文字列の場合はUpper Case
-		if arr[l] == "aws" || arr[l] == "vpc" || arr[l] == "cidr" || arr[l] == "az" {
+		if arr[l] == "aws" || arr[l] == "vpc" || arr[l] == "cidr" || arr[l] == "az" || arr[l] == "db" || arr[l] == "rds" || arr[l] == "arn" {
 			arr[l] = strings.ToUpper(arr[l])
 		} else {
 			// その他はTitle Case
