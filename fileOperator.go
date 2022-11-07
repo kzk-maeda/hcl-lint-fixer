@@ -2,9 +2,25 @@ package main
 
 import (
 	"bufio"
+	"fmt"
+	"io"
 	"log"
 	"os"
 )
+
+func createBackupFile(path string) {
+	destFile, err := os.Create(path + "bak")
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	srcFile, err := os.Open(path)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	io.Copy(destFile, srcFile)
+}
 
 func deleteBlankRow(path string) string {
 	data, err := os.Open(path)

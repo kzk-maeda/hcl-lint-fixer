@@ -143,13 +143,13 @@ func parseVariable(block *hclwrite.Block) *hclwrite.Block {
 	return returnBlock
 }
 
-func Run(path string) {
-	src, err := ioutil.ReadFile(path)
+func Run(srcPath string, tmpPath string) {
+	src, err := ioutil.ReadFile(tmpPath)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	file, diags := hclwrite.ParseConfig(src, path, hcl.InitialPos)
+	file, diags := hclwrite.ParseConfig(src, tmpPath, hcl.InitialPos)
 	if diags.HasErrors() {
 		log.Fatal(err)
 	}
@@ -165,7 +165,7 @@ func Run(path string) {
 
 	updated := file.BuildTokens(nil).Bytes()
 	output := hclwrite.Format(updated)
-	outputFile := "./files/output.tf"
+	outputFile := srcPath
 	// fmt.Fprint(os.Stdout, string(output))
 	fo, err := os.Create(outputFile)
 	defer fo.Close()
