@@ -1,6 +1,7 @@
 package main
 
 func main() {
-	src := "variables.tf"
+	src := "files/variables.tf"
 	Run(src)
+	// fmt.Println(createDocs(src))
 }

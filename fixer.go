@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -15,10 +16,12 @@ import (
 
 // Variable is terraform module variable
 type Variable struct {
-	Name        string          `hcl:"name,label"`
-	Type        hclwrite.Tokens `hcl:"type,attr"`
-	Description string          `hcl:"description,attr"`
-	Default     hclwrite.Tokens `hcl:"default,attr"`
+	Name        string         `hcl:",label"`
+	Description string         `hcl:"description,optional"`
+	Sensitive   bool           `hcl:"sensitive,optional"`
+	Type        *hcl.Attribute `hcl:"type,optional"`
+	Default     *hcl.Attribute `hcl:"default,optional"`
+	Options     hcl.Body       `hcl:",remain"`
 }
 
 func judgeType(value string) string {
@@ -59,37 +62,48 @@ func parseDescription(value string) string {
 }
 
 func parseVariable(block *hclwrite.Block) *hclwrite.Block {
-	return_block := hclwrite.NewBlock(block.Type(), block.Labels())
-	block_name := block.Labels()[0]
+	returnBlock := hclwrite.NewBlock(block.Type(), block.Labels())
+	blockName := block.Labels()[0]
 	// fmt.Println(variable.Name)
 	body := block.Body()
 
 	// descriptionがない場合、追記
-	if _, is_exist := body.Attributes()["description"]; !is_exist {
-		description := parseDescription(block_name)
-		return_block.Body().SetAttributeValue("description", cty.StringVal(description))
+	if _, ok := body.Attributes()["description"]; !ok {
+		description := parseDescription(blockName)
+		returnBlock.Body().SetAttributeValue("description", cty.StringVal(description))
+	} else {
+		description := body.GetAttribute("description")
+		descriptionToken := description.BuildTokens(nil)
+		returnBlock.Body().AppendUnstructuredTokens(descriptionToken)
 	}
 
 	// typeがない場合、追記
-	if _, is_exist := body.Attributes()["type"]; !is_exist {
+	if _, ok := body.Attributes()["type"]; !ok {
 		// defaultがない場合、skip
-		if _, is_exist := body.Attributes()["default"]; !is_exist {
-			return return_block
+		if _, ok := body.Attributes()["default"]; !ok {
+			return returnBlock
 		}
 
-		default_value := string(body.GetAttribute("default").Expr().BuildTokens(nil).Bytes())
-		type_value := judgeType(strings.TrimSpace(default_value))
-		return_block.Body().SetAttributeValue("type", cty.StringVal(type_value))
+		defaultValue := string(body.GetAttribute("default").Expr().BuildTokens(nil).Bytes())
+		typeValue := judgeType(strings.TrimSpace(defaultValue))
+		returnBlock.Body().SetAttributeValue("type", cty.StringVal(typeValue))
+	} else {
+		typeValue := body.GetAttribute("type")
+		typeValueToken := typeValue.BuildTokens(nil)
+		returnBlock.Body().AppendUnstructuredTokens(typeValueToken)
 	}
 
-	return_block.SetLabels(block.Labels())
-	return_block.SetType(block.Type())
-	// for k, v := range return_block.Body().Attributes() {
-	// 	value := string(v.Expr().BuildTokens(nil).Bytes())
-	// 	fmt.Println(k, value)
-	// }
+	// defaultを追記
+	if _, ok := body.Attributes()["default"]; ok {
+		defaultValue := body.GetAttribute("default")
+		defaultValueToken := defaultValue.BuildTokens(nil)
+		returnBlock.Body().AppendUnstructuredTokens(defaultValueToken)
+	}
 
-	return return_block
+	returnBlock.SetLabels(block.Labels())
+	returnBlock.SetType(block.Type())
+
+	return returnBlock
 }
 
 func Run(path string) {
@@ -110,16 +124,11 @@ func Run(path string) {
 
 		body.RemoveBlock(block)
 		body.AppendBlock(new_block)
-
+		file.Body().AppendNewline()
 	}
 
-	for _, v := range body.Blocks() {
-		fmt.Println("---")
-		fmt.Println(v.Labels())
-		for _, v := range v.Body().Attributes() {
-			value := string(v.Expr().BuildTokens(nil).Bytes())
-			fmt.Println(value)
-		}
-	}
+	updated := file.BuildTokens(nil).Bytes()
+	output := hclwrite.Format(updated)
+	fmt.Fprint(os.Stdout, string(output))
 
 }
