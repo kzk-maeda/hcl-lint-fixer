@@ -1,32 +1,47 @@
 variable "env" {
-  type = string
+  description = "Env"
+  type        = string
 }
+
 variable "aws_assume_role" {
-  default = "arn:aws:iam::816691268740:role/atamaplus-terraform"
+  description = "AWS Assume Role"
+  type        = string
+  default     = "arn:aws:iam::816691268740:role/atamaplus-terraform"
 }
 
 variable "aws_region" {
-  default = "us-east-1"
+  description = "AWS Region"
+  type        = string
+  default     = "us-east-1"
 }
 
 variable "aws_region_tokyo" {
-  default = "ap-northeast-1"
+  description = "AWS Region Tokyo"
+  type        = string
+  default     = "ap-northeast-1"
 }
 
 variable "aws_region_osaka" {
-  default = "ap-northeast-3"
+  description = "AWS Region Osaka"
+  type        = string
+  default     = "ap-northeast-3"
 }
 
 variable "create_tokyo_region" {
-  default = false
+  description = "Create Tokyo Region"
+  type        = bool
+  default     = false
 }
 
 variable "number" {
   description = "sample"
-  default = 2
+  type        = number
+  default     = 2
 }
 
 variable "heroku_vpc_cidr_blocks_tokyo" {
+  description = "Heroku VPC CIDR Blocks Tokyo"
+  type        = list(string)
   default = [
     "10.1.144.0/20",
     "10.1.128.0/20",
@@ -36,18 +51,22 @@ variable "heroku_vpc_cidr_blocks_tokyo" {
 }
 
 variable "hoge" {
-  default = {"foo": "bar"}
+  description = "Hoge"
+  type        = map(string)
+  default     = { "foo" : "bar" }
 }
 
 variable "fuga" {
-  
+  description = "Fuga"
 }
 
 variable "main_db_instances_virginia" {
   description = "Configuration values for individual main DB instances in Virginia region"
+  type        = list(map(string))
   default = [{
     instance_class               = "db.t3.large"
     promotion_tier               = 0
     preferred_maintenance_window = "sun:16:01-sun:16:31"
   }]
 }
+
